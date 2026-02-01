@@ -1,14 +1,15 @@
+// src/ln/index.ts   <-- ahora exporta las versiones Monero
 import {
   createHoldInvoice,
   settleHoldInvoice,
   cancelHoldInvoice,
   getInvoice,
-} from './hold_invoice';
-import { subscribeInvoice, payHoldInvoice } from './subscribe_invoice';
-import { subscribeProbe } from './subscribe_probe';
-import { resubscribeInvoices } from './resubscribe_invoices';
-import { payRequest, payToBuyer, isPendingPayment } from './pay_request';
-import { getInfo } from './info';
+} from "./../src/monero/hold_invoice";          // <-- apunta al nuevo archivo Monero
+
+import { subscribeInvoice, payHoldInvoice } from "./../src/monero/subscribe_invoice";
+import { resubscribeInvoices } from "./../src/monero/resubscribe_invoices";
+import { payRequest, payToBuyer, isPendingPayment } from "./../src/monero/pay_request";
+import { getInfo } from "./../src/monero/info";
 
 export {
   createHoldInvoice,
@@ -20,7 +21,6 @@ export {
   payToBuyer,
   getInfo,
   isPendingPayment,
-  subscribeProbe,
   getInvoice,
   payHoldInvoice,
 };

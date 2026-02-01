@@ -5,6 +5,7 @@
     "resolveJsonModule": true,
     "downlevelIteration": true,
     "lib":["ES2021", "DOM"],
+    "target": "ES2021",
     "outDir": "./dist",
     "rootDir": ".",
     "moduleResolution": "node"
@@ -18,6 +19,8 @@
     "models/**/*",
     "util/**/*",
     "locales/**/*",
+    "src/**/*",
+    "src/@types/**/*"
   ],
   "exclude": ["node_modules", "dist", "tests", "locales"]
 }

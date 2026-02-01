@@ -46,6 +46,13 @@ export interface IOrder extends Document {
   is_public: boolean;
   random_image: string;
   is_golden_honey_badger?: boolean;
+
+  /** Monero: dirección integrada (address + paymentId) */
+  moneroAddress?: string | null;
+  /** Monero: paymentId (también guardado en `hash`) */
+  moneroPaymentId?: string | null;
+  /** Monero: monto en piconeros (10⁻¹² XMR) */
+  moneroAmountPico?: string | null;
 }
 
 const orderSchema = new Schema<IOrder>({
@@ -142,6 +149,10 @@ const orderSchema = new Schema<IOrder>({
   is_frozen: { type: Boolean, default: false },
   random_image: { type: String },
   is_golden_honey_badger: { type: Boolean, default: false },
+    // ----------- Monero fields ----------
+  moneroAddress: { type: String },
+  moneroPaymentId: { type: String, index: true },
+  moneroAmountPico: { type: String },
 });
 
 export default mongoose.model<IOrder>('Order', orderSchema);

@@ -1,13 +1,49 @@
+// src/jobs/pending_payments.ts
 import { PendingPayment, Order, User, Community } from '../models';
 import * as messages from '../bot/messages';
 import { logger } from '../logger';
 import { Telegraf } from 'telegraf';
+import {
+  payRequest,
+  PayResult,
+  SuccessPayment,
+  isPendingPayment,
+} from '../src/monero/pay_request'; // ← Wrapper Monero
 import { I18nContext } from '@grammyjs/i18n';
-import { payRequest, isPendingPayment } from '../ln';
 import { getUserI18nContext } from '../util';
 import { CommunityContext } from '../bot/modules/community/communityContext';
 import { orderUpdated } from '../bot/modules/events/orders';
+import { PayViaPaymentRequestResult } from '../src/@types/payments'; // ← Interfaz que usan los mensajes
 
+/**
+ * Convierte un `SuccessPayment` (Monero) a la forma que esperan los
+ * mensajes que fueron escritos para Lightning (`PayViaPaymentRequestResult`).
+ *
+ * Los campos que Lightning exige pero que Monero no tiene se rellenan
+ * con valores “neutros” (empty string, 0 o arrays vacíos).
+ */
+function moneroSuccessToPayResult(
+  payment: SuccessPayment,
+): PayViaPaymentRequestResult {
+  // En Lightning `fee` está en satoshis y `fee_mtokens` en milisatoshis.
+  const feeMtokens = (payment.fee * 1_000).toString(); // 1 sat = 1 000 msat
+
+  return {
+    id: payment.id,
+    fee: payment.fee,
+    fee_mtokens: feeMtokens,
+    mtokens: feeMtokens,
+    tokens: payment.fee.toString(),
+    safe_fee: payment.fee,
+    safe_tokens: payment.fee,
+    secret: '', // Monero no tiene secret → cadena vacía
+    routes: [], // No hay rutas Lightning
+  };
+}
+
+/* -----------------------------------------------------------------
+   ATTEMPT PENDING PAYMENTS (USERS)
+   ----------------------------------------------------------------- */
 export const attemptPendingPayments = async (
   bot: Telegraf<CommunityContext>,
 ): Promise<void> => {
@@ -18,112 +54,115 @@ export const attemptPendingPayments = async (
     community_id: null,
     next_retry: { $lte: new Date() },
   });
+
   for (const pending of pendingPayments) {
     const order = await Order.findOne({ _id: pending.order_id });
     try {
-      if (order === null) throw Error('Order was not found in DB');
+      if (!order) throw new Error('Order was not found in DB');
+
+      // -----------------------------------------------------------------
+      // 1️⃣  Incrementamos intentos y calculamos back‑off exponencial
+      // -----------------------------------------------------------------
       pending.attempts++;
-
-      // Calculate exponential backoff delay
-      const baseDelay = 5 * 60 * 1000; // 5 minutes
+      const baseDelay = 5 * 60 * 1000; // 5 min
       const exponentialDelay = baseDelay * Math.pow(2, pending.attempts - 1);
-      const maxDelay = 60 * 60 * 1000; // 1 hour max
-      const nextRetryDelay = Math.min(exponentialDelay, maxDelay);
-      pending.next_retry = new Date(Date.now() + nextRetryDelay);
+      const maxDelay = 60 * 60 * 1000; // 1 h
+      pending.next_retry = new Date(
+        Date.now() + Math.min(exponentialDelay, maxDelay),
+      );
 
+      // Si la orden ya está marcada como SUCCESS, la marcamos como pagada y seguimos
       if (order.status === 'SUCCESS') {
         pending.paid = true;
         await pending.save();
         logger.info(`Order id: ${order._id} was already paid`);
-        return;
+        continue;
       }
-      // We check if the old payment is on flight
-      const isPendingOldPayment: boolean = await isPendingPayment(
-        order.buyer_invoice,
-      );
 
-      // We check if this new payment is on flight
-      const isPending: boolean = await isPendingPayment(
-        pending.payment_request,
-      );
+      // -----------------------------------------------------------------
+      // 2️⃣  Verificamos si hay pagos en curso (old y new)
+      // -----------------------------------------------------------------
+      const isPendingOldPayment = await isPendingPayment(order.buyer_invoice);
+      const isPendingNewPayment = await isPendingPayment(pending.payment_request);
+      if (isPendingOldPayment || isPendingNewPayment) continue; // nada que hacer ahora
 
-      // If one of the payments is on flight we don't do anything
-      if (isPending || isPendingOldPayment) return;
-
-      const payment = await payRequest({
+      // -----------------------------------------------------------------
+      // 3️⃣  Intentamos pagar con Monero
+      // -----------------------------------------------------------------
+      const paymentResult: PayResult = await payRequest({
         amount: pending.amount,
         request: pending.payment_request,
       });
-      const buyerUser = await User.findOne({ _id: order.buyer_id });
-      if (buyerUser === null) throw Error('buyerUser was not found in DB');
-      const i18nCtx: I18nContext = await getUserI18nContext(buyerUser);
-      // If the buyer's invoice is expired we let it know and don't try to pay again
-      if (!!payment && payment.is_expired) {
-        pending.is_invoice_expired = true;
-        order.paid_hold_buyer_invoice_updated = false;
-        return await messages.expiredInvoiceOnPendingMessage(
-          bot,
-          buyerUser,
-          order,
-          i18nCtx,
-        );
-      }
 
-      if (!!payment && !!payment.confirmed_at) {
+      const buyerUser = await User.findOne({ _id: order.buyer_id });
+      if (!buyerUser) throw new Error('buyerUser was not found in DB');
+      const i18nCtx: I18nContext = await getUserI18nContext(buyerUser);
+
+      // -----------------------------------------------------------------
+      // 4️⃣  Caso de ÉXITO (SuccessPayment)
+      // -----------------------------------------------------------------
+      if ('confirmed_at' in paymentResult) {
+        const success = paymentResult as SuccessPayment;
+
+        // Convertimos a la forma que esperan los mensajes
+        const payResultForMessages = moneroSuccessToPayResult(success);
+
+        // Actualizamos la orden y el registro pending
         order.status = 'SUCCESS';
-        order.routing_fee = payment.fee;
+        order.routing_fee = success.fee;
         pending.paid = true;
         pending.paid_at = new Date();
-        // We add a new completed trade for the buyer
+
+        // Estadísticas de usuarios
         buyerUser.trades_completed++;
         await buyerUser.save();
-        // We add a new completed trade for the seller
         const sellerUser = await User.findOne({ _id: order.seller_id });
-        if (sellerUser === null) throw Error('sellerUser was not found in DB');
-        sellerUser.trades_completed++;
-        sellerUser.save();
+        if (sellerUser) {
+          sellerUser.trades_completed++;
+          await sellerUser.save();
+        }
+
         logger.info(`Invoice with hash: ${pending.hash} paid`);
+
+        // ---------- MENSAJES ----------
         await messages.toAdminChannelPendingPaymentSuccessMessage(
           bot,
           buyerUser,
           order,
           pending,
-          payment,
+          payResultForMessages,
           i18nCtx,
         );
         await messages.toBuyerPendingPaymentSuccessMessage(
           bot,
           buyerUser,
           order,
-          payment,
+          payResultForMessages,
           i18nCtx,
         );
         await messages.rateUserMessage(bot, buyerUser, order, i18nCtx);
       } else {
-        // Enhanced error handling for different payment failure types
-        if (payment && typeof payment === 'object' && 'error' in payment) {
-          pending.last_error = payment.error as string;
+        // -----------------------------------------------------------------
+        // 5️⃣  Caso de FALLA (ErrorPayment)
+        // -----------------------------------------------------------------
+        const errObj = paymentResult as { error: string; message: any };
+        pending.last_error = errObj.error;
 
-          if (payment.error === 'TIMEOUT') {
-            logger.warning(
-              `Payment timeout for order ${order._id}, attempt ${pending.attempts}`,
-            );
-          } else if (payment.error === 'ROUTING_FAILED') {
-            logger.warning(
-              `Routing failed for order ${order._id}, attempt ${pending.attempts}`,
-            );
-          } else {
-            logger.error(
-              `Payment failed for order ${order._id}, attempt ${pending.attempts}, error: ${payment.error}`,
-            );
-          }
+        if (errObj.error === 'TIMEOUT') {
+          logger.warning(
+            `Payment timeout for order ${order._id}, attempt ${pending.attempts}`,
+          );
+        } else if (errObj.error === 'ROUTING_FAILED') {
+          logger.warning(
+            `Routing failed for order ${order._id}, attempt ${pending.attempts}`,
+          );
         } else {
-          pending.last_error = 'PAYMENT_FAILED';
           logger.error(
-            `Payment failed for order ${order._id}, attempt ${pending.attempts}`,
+            `Payment failed for order ${order._id}, attempt ${pending.attempts}, error: ${errObj.error}`,
           );
         }
 
+        // Si agotamos los intentos, notificamos al comprador
         if (
           process.env.PAYMENT_ATTEMPTS !== undefined &&
           pending.attempts >= parseInt(process.env.PAYMENT_ATTEMPTS)
@@ -145,10 +184,9 @@ export const attemptPendingPayments = async (
         );
       }
     } catch (error: any) {
-      const message: string = error.toString();
-      logger.error(`attemptPendingPayments catch error: ${message}`);
+      logger.error(`attemptPendingPayments catch error: ${error}`);
     } finally {
-      if (order !== null) {
+      if (order) {
         await order.save();
         orderUpdated(order);
       }
@@ -157,6 +195,9 @@ export const attemptPendingPayments = async (
   }
 };
 
+/* -----------------------------------------------------------------
+   ATTEMPT COMMUNITY PENDING PAYMENTS
+   ----------------------------------------------------------------- */
 export const attemptCommunitiesPendingPayments = async (
   bot: Telegraf<CommunityContext>,
 ): Promise<void> => {
@@ -170,74 +211,90 @@ export const attemptCommunitiesPendingPayments = async (
 
   for (const pending of pendingPayments) {
     try {
+      // -----------------------------------------------------------------
+      // 1️⃣  Incrementamos intentos y calculamos back‑off exponencial
+      // -----------------------------------------------------------------
       pending.attempts++;
-
-      // Calculate exponential backoff delay for community payments
-      const baseDelay = 5 * 60 * 1000; // 5 minutes
+      const baseDelay = 5 * 60 * 1000; // 5 min
       const exponentialDelay = baseDelay * Math.pow(2, pending.attempts - 1);
-      const maxDelay = 60 * 60 * 1000; // 1 hour max
-      const nextRetryDelay = Math.min(exponentialDelay, maxDelay);
-      pending.next_retry = new Date(Date.now() + nextRetryDelay);
-
-      // We check if this new payment is on flight
-      const isPending: boolean = await isPendingPayment(
-        pending.payment_request,
+      const maxDelay = 60 * 60 * 1000; // 1 h
+      pending.next_retry = new Date(
+        Date.now() + Math.min(exponentialDelay, maxDelay),
       );
 
-      // If the payments is on flight we don't do anything
-      if (isPending) return;
+      // -----------------------------------------------------------------
+      // 2️⃣  Verificamos si ya hay un pago en curso
+      // -----------------------------------------------------------------
+      const isPending = await isPendingPayment(pending.payment_request);
+      if (isPending) continue; // nada que hacer ahora
 
-      const payment = await payRequest({
+      // -----------------------------------------------------------------
+      // 3️⃣  Intentamos pagar con Monero
+      // -----------------------------------------------------------------
+      const paymentResult: PayResult = await payRequest({
         amount: pending.amount,
         request: pending.payment_request,
       });
-      const user = await User.findById(pending.user_id);
-      if (user === null) throw Error('User was not found in DB');
-      const i18nCtx: I18nContext = await getUserI18nContext(user);
-      // If the buyer's invoice is expired we let it know and don't try to pay again
-      if (!!payment && payment.is_expired) {
-        pending.is_invoice_expired = true;
-        await bot.telegram.sendMessage(
-          user.tg_id,
-          i18nCtx.t('invoice_expired_earnings'),
-        );
-      }
 
-      const community = await Community.findById(pending.community_id);
-      if (community === null) throw Error('Community was not found in DB');
-      if (!!payment && !!payment.confirmed_at) {
+      const user = await User.findById(pending.user_id);
+      if (!user) throw new Error('User was not found in DB');
+      const i18nCtx: I18nContext = await getUserI18nContext(user);
+
+      // -----------------------------------------------------------------
+      // 4️⃣  Caso de ÉXITO (SuccessPayment)
+      // -----------------------------------------------------------------
+      if ('confirmed_at' in paymentResult) {
+        const success = paymentResult as SuccessPayment;
+
+        // Convertimos a la forma que esperan los mensajes (aunque aquí solo
+        // enviamos un mensaje directo al usuario, lo usamos por consistencia)
+        const payResultForMessages = moneroSuccessToPayResult(success);
+
         pending.paid = true;
         pending.paid_at = new Date();
 
-        // Reset the community's values
+        const community = await Community.findById(pending.community_id);
+        if (!community) throw new Error('Community was not found in DB');
+
+        // Reiniciamos los contadores de la comunidad
         community.earnings = 0;
         community.orders_to_redeem = 0;
         await community.save();
+
         logger.info(
-          `Community ${community.id} withdrew ${pending.amount} sats, invoice with hash: ${payment.id} was paid`,
+          `Community ${community.id} withdrew ${pending.amount} sats, invoice with hash: ${payResultForMessages.id} was paid`,
         );
+
+        // Mensaje al usuario de la comunidad
         await bot.telegram.sendMessage(
           user.tg_id,
           i18nCtx.t('pending_payment_success', {
             id: community.id,
             amount: pending.amount,
-            paymentSecret: payment.secret,
+            // En la versión Lightning se enviaba `payment.secret`. En Monero
+            // usamos el hash de la transacción como “secret”.
+            paymentSecret: payResultForMessages.id,
           }),
         );
       } else {
-        // Enhanced error handling for community payments
-        if (payment && typeof payment === 'object' && 'error' in payment) {
-          pending.last_error = payment.error as string;
-          logger.error(
-            `Community ${community.id}: Withdraw failed after ${pending.attempts} attempts, amount ${pending.amount} sats, error: ${payment.error}`,
-          );
+        // -----------------------------------------------------------------
+        // 5️⃣  Caso de FALLA (ErrorPayment)
+        // -----------------------------------------------------------------
+        const errObj = paymentResult as { error: string; message: any };
+        pending.last_error = errObj.error;
+
+        const community = await Community.findById(pending.community_id);
+        if (!community) throw new Error('Community was not found in DB');
+
+        if (errObj.error === 'TIMEOUT') {
+          logger.warning(`Timeout al retirar fondos de la comunidad ${community.id}`);
+        } else if (errObj.error === 'ROUTING_FAILED') {
+          logger.warning(`Routing falló al retirar fondos de la comunidad ${community.id}`);
         } else {
-          pending.last_error = 'PAYMENT_FAILED';
-          logger.error(
-            `Community ${community.id}: Withdraw failed after ${pending.attempts} attempts, amount ${pending.amount} sats`,
-          );
+          logger.error(`Retiro falló en la comunidad ${community.id}: ${errObj.error}`);
         }
 
+        // Si agotamos los intentos, avisamos al usuario
         if (
           process.env.PAYMENT_ATTEMPTS !== undefined &&
           pending.attempts >= parseInt(process.env.PAYMENT_ATTEMPTS)

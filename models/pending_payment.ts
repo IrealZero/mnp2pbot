@@ -8,6 +8,7 @@ export interface IPendingPayment extends Document {
   is_invoice_expired: boolean;
   payment_request: string;
   hash: string;
+  moneroPaymentId?: string; // Monero: paymentId (igual que `hash`)
   created_at: Date;
   paid_at: Date;
   user_id: string;
@@ -33,6 +34,7 @@ const PendingPaymentSchema = new Schema<IPendingPayment>({
   is_invoice_expired: { type: Boolean, default: false },
   payment_request: { type: String },
   hash: { type: String },
+  moneroPaymentId: { type: String },
   created_at: { type: Date, default: Date.now },
   paid_at: { type: Date },
   user_id: { type: String },

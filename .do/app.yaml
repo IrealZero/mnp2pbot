@@ -3,7 +3,7 @@ services:
 - name: bot
   source_dir: /
   github:
-    repo: your-username/lnp2pbot
+    repo: IrealZero/mnp2pbot
     branch: main
     deploy_on_push: true
   dockerfile_path: Dockerfile

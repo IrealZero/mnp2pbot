@@ -6,7 +6,7 @@ import { getUserI18nContext, holdInvoiceExpirationInSecs } from '../util';
 import { logger } from '../logger';
 import { CommunityContext } from '../bot/modules/community/communityContext';
 import * as OrderEvents from '../bot/modules/events/orders';
-import { PerOrderIdMutex } from '../ln/subscribe_invoice';
+import { PerOrderIdMutex } from '../src/monero/subscribe_invoice';
 
 const cancelOrders = async (bot: HasTelegram) => {
   try {

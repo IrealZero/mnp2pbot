@@ -353,7 +353,7 @@ const initialize = (
       order.action_by = ctx.admin._id;
       await order.save();
 
-      if (order.secret) await settleHoldInvoice({ secret: order.secret });
+      if (order.secret) await settleHoldInvoice({ secret: order.secret, hash: order.hash });
 
       await ctx.reply(ctx.i18n.t('order_frozen'));
     } catch (error) {
@@ -547,7 +547,7 @@ const initialize = (
         }
       }
 
-      if (order.secret) await settleHoldInvoice({ secret: order.secret });
+      if (order.secret) await settleHoldInvoice({ secret: order.secret, hash: order.hash });
 
       if (dispute) {
         dispute.status = 'SETTLED';

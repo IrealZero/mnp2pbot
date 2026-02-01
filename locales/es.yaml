@@ -4,7 +4,7 @@ start: |
   ${disclaimer}
   ---———— TERMS AND CONDITIONS ————---
 
-  Este bot te ayudará a completar tus intercambios P2P usando Bitcoin vía Lightning Network.
+  Este bot te ayudará a completar tus intercambios P2P usando XMR vía Monero Network.
 
   Una vez inicializado el Bot, puedes usar los siguientes comandos:
 
@@ -16,15 +16,15 @@ start: |
 
   4. Si estas vendiendo el bot publicará la orden en el canal ${channel} esperando a que alguien tome tu venta. Sin embargo puedes cancelarla antes de que otro usuario la tome con el comando /cancel.
 
-  5. Una vez alguien tome tu venta el bot te pedirá que pagues una factura lightning, el pago a esta factura será retenido, la orden expirará en un tiempo máximo de ${orderExpiration} horas desde el momento que fue tomada, el bot te dirá quién es el comprador para que le brindes tus datos de pago y te envíe el dinero fiat. Luego tu debes liberar los fondos para que le lleguen los sats al invoice del usuario por medio del comando /release
+  5. Una vez alguien tome tu venta el bot te pedirá que pagues una factura monero, el pago a esta factura será retenido, la orden expirará en un tiempo máximo de ${orderExpiration} horas desde el momento que fue tomada, el bot te dirá quién es el comprador para que le brindes tus datos de pago y te envíe el dinero fiat. Luego tu debes liberar los fondos para que le lleguen los XMR al invoice del usuario por medio del comando /release
 
   6. Si estas comprando, solo debes publicar la oferta y esperar que otro usuario la tome. Sin embargo puedes cancelarla antes de que otro usuario la tome con el comando /cancel.
 
-  7. Una vez alguien tome tu compra debes crear una factura lightning para recibir los sats y enviarsela al bot, luego contacta al vendedor para que te de los datos del pago fiat. El vendedor luego debe liberar los fondos usando el comando /release para que te lleguen los sats a la factura lightning.
+  7. Una vez alguien tome tu compra debes crear una factura monero para recibir los XMR y enviarsela al bot, luego contacta al vendedor para que te de los datos del pago fiat. El vendedor luego debe liberar los fondos usando el comando /release para que te lleguen los XMR a la factura monero.
 
-  8. Si estas tomando una venta, debes crear una factura lightning para recibir los sats y pedirle al vendedor que te de sus datos de pago fiat. Una vez el vendedor confirme su pago fiat usará el comando /release para liberarte los sats a tu factura.
+  8. Si estas tomando una venta, debes crear una factura monero para recibir los XMR y pedirle al vendedor que te de sus datos de pago fiat. Una vez el vendedor confirme su pago fiat usará el comando /release para liberarte los XMR a tu factura.
 
-  9. Si estas tomando una compra, debes pagar la factura lightning, este pago estará retenido mientras el comprador realiza tu pago fiat. Debes contactarle y brindarle tus datos para ello. Una vez confirmes su pago, debes liberar los fondos por medio del comando /release para que le lleguen los sats al comprador.
+  9. Si estas tomando una compra, debes pagar la factura monero, este pago estará retenido mientras el comprador realiza tu pago fiat. Debes contactarle y brindarle tus datos para ello. Una vez confirmes su pago, debes liberar los fondos por medio del comando /release para que le lleguen los XMR al comprador.
 
   Puedes encontrar más información sobre como utilizar este bot aquí 👇
 
@@ -34,7 +34,7 @@ start: |
 init_bot_error: Para usar este Bot primero debes inicializar el bot con el comando /start
 non_handle_error: 👤 Para usar este bot debes activar tu username de telegram, para activarlo abre el menú de hamburguesa arriba a la izquierda, selecciona ajustes -> editar perfil -> username
 invoice_payment_request: |
-  Un usuario quiere comprarte ${order.amount} sats por ${currency} ${order.fiat_amount}
+  Un usuario quiere comprarte ${order.amount} XMR por ${currency} ${order.fiat_amount}
 
   Reputación del comprador: ${rate}, días utilizando el bot: ${days}
 
@@ -68,16 +68,16 @@ pending_buy: |
   Puedes cancelar esta orden antes de que alguien la tome ejecutando 👇
 must_be_int: ${fieldName} debe ser un número entero
 must_be_numeric: ${fieldName} debe ser numérico
-sats_amount: monto en sats
+XMR_amount: monto en XMR
 fiat_amount: monto en fiat
 sell_correct_format: |
-  /sell \<_monto en sats_\> \<_monto en fiat_\> \<_código fiat_\> \<_método de pago_\> \[_prima/descuento_\]
+  /sell \<_monto en XMR_\> \<_monto en fiat_\> \<_código fiat_\> \<_método de pago_\> \[_prima/descuento_\]
 
-  Para crear una venta de 1000 satoshis por 2 bolívares \(VES\) e indicar que el método de pago fiat es pago móvil, debes omitir los \<\> y los \[\]\.
+  Para crear una venta de 1000 XMR por 2 bolívares \(VES\) e indicar que el método de pago fiat es pago móvil, debes omitir los \<\> y los \[\]\.
 
   `/sell 1000 2 ves "pago móvil"`
 
-  Para crear una venta con un incremento en el precio del 3% \(prima\) sin indicar el monto en satoshis, solo debes poner 0 \(cero\) en el campo "monto en sats", el bot hará el cálculo con el precio del libre mercado y 3 es la prima e irá como último parámetro
+  Para crear una venta con un incremento en el precio del 3% \(prima\) sin indicar el monto en XMR, solo debes poner 0 \(cero\) en el campo "monto en XMR", el bot hará el cálculo con el precio del libre mercado y 3 es la prima e irá como último parámetro
 
   `/sell 0 2 ves "pago móvil" 3`
 
@@ -85,24 +85,24 @@ sell_correct_format: |
 
   `/sell 0 100\-500 ves "pago móvil" 3`
 buy_correct_format: |
-  /buy \<_monto en sats_\> \<_monto en fiat_\> \<_código fiat_\> \<_método de pago_\> \[_prima/descuento_\]
+  /buy \<_monto en XMR_\> \<_monto en fiat_\> \<_código fiat_\> \<_método de pago_\> \[_prima/descuento_\]
 
-  Para crear una compra de 1000 satoshis por 2 bolívares \(VES\) e indicar que el método de pago fiat es pago móvil, debes omitir los \<\> y los \[\]\.
+  Para crear una compra de 1000 XMR por 2 bolívares \(VES\) e indicar que el método de pago fiat es pago móvil, debes omitir los \<\> y los \[\]\.
 
   `/buy 1000 2 ves "pago móvil`
 
-  Si no deseas indicar el monto en satoshis y además quieres comprar a un precio menor al precio del mercado puedes crear una orden de compra con descuento, el descuento es un porcentaje que se le restará al precio del mercado, para esto solo debes poner `0` \(cero\) en el campo `monto en sats`, el bot hará el cálculo con el precio del libre mercado, por ejemplo si quieres comprar con un 2% de descuento debes colocar *\-2* como último parámetro
+  Si no deseas indicar el monto en XMR y además quieres comprar a un precio menor al precio del mercado puedes crear una orden de compra con descuento, el descuento es un porcentaje que se le restará al precio del mercado, para esto solo debes poner `0` \(cero\) en el campo `monto en XMR`, el bot hará el cálculo con el precio del libre mercado, por ejemplo si quieres comprar con un 2% de descuento debes colocar *\-2* como último parámetro
 
   `/buy 0 2 ves "pago móvil" \-2`
 
   Para crear una compra por rango, en lugar de indicar un monto fiat fijo, puedes indicar un monto mínimo y un monto máximo a operar separados por un guión *\-*\.
 
   `/buy 0 100\-500 ves "pago móvil" \-2`
-min_invoice_amount: La factura debe ser mayor o igual a ${minPaymentAmount} satoshis
+min_invoice_amount: La factura debe ser mayor o igual a ${minPaymentAmount} XMR
 min_expiration_time: El tiempo de expiración de la factura debe ser de al menos ${expirationTime} minutos
 invoice_expired: La factura ha expirado
 invoice_expired_long: |
-  La factura ha expirado. Si deseas puedes enviarme una nueva factura para recibir los satoshis con el comando 👇
+  La factura ha expirado. Si deseas puedes enviarme una nueva factura para recibir los XMR con el comando 👇
 setinvoice_cmd_order: /setinvoice
 invoice_require_destination: La factura necesita una dirección destino
 invoice_require_hash: La factura necesita un hash
@@ -118,19 +118,19 @@ begin_take_buy: |
 continue: Continuar
 cancel: Cancelar
 pay_invoice: |
-  Por favor paga esta factura de ${amount} sats equivalente a ${currency} ${fiatAmount} para comenzar la operación.
+  Por favor paga esta factura de ${amount} XMR equivalente a ${currency} ${fiatAmount} para comenzar la operación.
 
   Nota: Confirme que la imagen adjunta coincide con la enviada durante la creación del pedido antes de pagar la factura
 payment_received: |
   🤑 ¡Pago recibido!
 
-  Ahora necesito que el comprador me envíe una factura para enviarle los satoshis, luego de que lo haga los pondré en contacto.
+  Ahora necesito que el comprador me envíe una factura para enviarle los XMR, luego de que lo haga los pondré en contacto.
 
   Espera un momento. Si el comprador no coopera, se te devolverá el colateral.
 someone_took_your_order: |
-  🤖 Alguien ha tomado tu compra y ya me envió tus sats, por favor utiliza un procesador de pagos fiat que te permita enviar el dinero de manera inmediata y en el cual no haya riesgo de congelamiento de fondos.
+  🤖 Alguien ha tomado tu compra y ya me envió tus XMR, por favor utiliza un procesador de pagos fiat que te permita enviar el dinero de manera inmediata y en el cual no haya riesgo de congelamiento de fondos.
 
-  Si por alguna razón tu procesador de pagos pusiera el pago en pausa y los fondos no llegasen en un lapso menor a ${expirationTime}, los sats regresarán al vendedor, poniendo al comprador en riesgo y yo no podré obligar al vendedor a enviar nuevamente los sats.
+  Si por alguna razón tu procesador de pagos pusiera el pago en pausa y los fondos no llegasen en un lapso menor a ${expirationTime}, los XMR regresarán al vendedor, poniendo al comprador en riesgo y yo no podré obligar al vendedor a enviar nuevamente los XMR.
 
   Reputación del vendedor: ${rate}, días utilizando el bot: ${days}
 
@@ -138,7 +138,7 @@ someone_took_your_order: |
 you_took_someone_order: |
   🤖 Has tomado esta venta, por favor utiliza un procesador de pagos fiat que te permita enviar el dinero de manera inmediata y en el cual no haya riesgo de congelamiento de fondos\\.
 
-  *Si por alguna razón tu procesador de pagos pusiera el pago en pausa y los fondos no llegasen en un lapso menor a ${expirationTime}, los sats regresarán al vendedor, poniendo al comprador en riesgo y yo no podré obligar al vendedor a enviar nuevamente los sats\\.*
+  *Si por alguna razón tu procesador de pagos pusiera el pago en pausa y los fondos no llegasen en un lapso menor a ${expirationTime}, los XMR regresarán al vendedor, poniendo al comprador en riesgo y yo no podré obligar al vendedor a enviar nuevamente los XMR\\.*
 
   Si estás de acuerdo con lo arriba expresado presiona el botón para continuar 👇
 get_in_touch_with_seller: |
@@ -157,20 +157,20 @@ get_in_touch_with_buyer: |
 buyer_took_your_order: |
   🤖 Orden Id: #${orderId}
 
-  @${buyerUsername} ha tomado tu venta y te quiere comprar sats. Escríbele para que te envíe ${currency} ${fiatAmount} por ${paymentMethod}.
+  @${buyerUsername} ha tomado tu venta y te quiere comprar XMR. Escríbele para que te envíe ${currency} ${fiatAmount} por ${paymentMethod}.
 
   Te avisaré cuando el comprador me indique que ya envió el fiat, luego deberás revisar si llegó.
 
   Si el comprador no responde, puedes iniciar una cancelación o una disputa. Recuerda que un administrador NUNCA te contactará para resolver tu orden, a menos que tú abras una disputa primero.
-waiting_seller_to_pay: 'Le he enviado una solicitud de pago al vendedor para que nos envíe tus sats por la orden Id: #${orderId}, en cuanto realice el pago los pondremos en contacto'
-sell_success: Tu venta de sats ha sido completada tras confirmar el pago de @${buyerUsername} ⚡️🍊⚡️
-funds_released: 🕐 @${sellerUsername} ya liberó los satoshis, debes esperar por el pago de tu factura, recuerda que para recibir en lightning tu wallet debe estar online.
+waiting_seller_to_pay: 'Le he enviado una solicitud de pago al vendedor para que nos envíe tus XMR por la orden Id: #${orderId}, en cuanto realice el pago los pondremos en contacto'
+sell_success: Tu venta de XMR ha sido completada tras confirmar el pago de @${buyerUsername} ⚡️🍊⚡️
+funds_released: 🕐 @${sellerUsername} ya liberó los XMR, debes esperar por el pago de tu factura, recuerda que para recibir en monero tu wallet debe estar online.
 rate_counterpart: 'Califica a tu contraparte:'
 cant_process_order: Esta orden no puede ser procesada, asegúrate de que el Id es correcto
-cant_release_order: Esta orden no puede ser liberada, el comprador no me ha indicado la factura para recibir los sats
+cant_release_order: Esta orden no puede ser liberada, el comprador no me ha indicado la factura para recibir los XMR
 no_id_related: No tienes ninguna orden asociada con ese Id
-sell_sats: Vender satoshis
-buy_sats: Comprar satoshis
+sell_XMR: Vender XMR
+buy_XMR: Comprar XMR
 order_detail: |
   Id: `${order._id}`
   
@@ -196,11 +196,11 @@ order_detail: |
 
   Operaciones exitosas \\(vendedor\\): ${sellerTrades}
 
-  Monto \\(sats\\): ${order.amount}
+  Monto \\(XMR\\): ${order.amount}
 
-  Bot Fee \\(sats\\): ${fee}
+  Bot Fee \\(XMR\\): ${fee}
 
-  Routing Fee \\(sats\\): ${order.routing_fee}
+  Routing Fee \\(XMR\\): ${order.routing_fee}
 
   Monto \\(fiat\\) ${order.fiat_code}: ${order.fiat_amount}
 
@@ -235,23 +235,23 @@ counterpart_started: '🥴 Tu contraparte ha iniciado una disputa en tu orden co
 dispute_started: '${who} Un solver te atenderá pronto, cuando él/la solver sea asignado a tu disputa el bot te dirá su username, solo él/ella podrá atenderte. Puedes escribirle directamente, pero si él/ella te contacta primero, debes pedirle que te diga cuál es el token de tu disputa, tu token es: ${token}.'
 must_be_valid_currency: 'codigo_fiat debe ser un código de moneda válido, ejemplo: USD, EUR, puedes ver una lista completa ejecutando /listcurrencies'
 must_be_number_or_range: 'monto_en_fiat debe ser un número o un rango numerico de la forma: <mínimo>-<máximo>.'
-invalid_lightning_address: Dirección lightning no válida
-unavailable_lightning_address: Dirección lightning ${la} no disponible
+invalid_monero_address: Dirección monero no válida
+unavailable_monero_address: Dirección monero ${la} no disponible
 help: |
-  /sell <_monto en sats_> <_monto en fiat_> <_código fiat_> <_método de pago_> [prima/descuento] - Crea una orden de venta
-  /buy <_monto en sats_> <_monto en fiat_> <_código fiat_> <_método de pago_> [prima/descuento] - Crea una orden de compra
+  /sell <_monto en XMR_> <_monto en fiat_> <_código fiat_> <_método de pago_> [prima/descuento] - Crea una orden de venta
+  /buy <_monto en XMR_> <_monto en fiat_> <_código fiat_> <_método de pago_> [prima/descuento] - Crea una orden de compra
   /takeorder <_order id_> - Permite tomar una orden desde el chat con el bot sin ir al canal donde fue publicada
   /info - Muestra información sobre el bot
   /showusername - Permite mostrar u ocultar el username en cada nueva orden creada, el valor predeterminado es no (falso)
   /showvolume - Permite mostrar el volumen de comercio en cada nueva orden creada, el valor predeterminado es no (falso)
-  /setinvoice - Le permite al comprador actualizar la factura lightning en la que recibirá sats
-  /setaddress <_lightning address / off_> - Permite al comprador indicar una dirección de pago estática (lightning address), _off_ para desactivarla
+  /setinvoice - Le permite al comprador actualizar la factura monero en la que recibirá XMR
+  /setaddress <_monero address / off_> - Permite al comprador indicar una dirección de pago estática (monero address), _off_ para desactivarla
   /setlang - Le permite al usuario cambiar el idioma
   /settings - Muestra la configuración actual del usuario
   /listorders - El usuario puede listar sus órdenes no finalizadas
-  /listcurrencies - Lista las monedas que podemos utilizar sin indicar el monto en satoshis
+  /listcurrencies - Lista las monedas que podemos utilizar sin indicar el monto en XMR
   /fiatsent <_id orden_> - El comprador indica que ya ha enviado el dinero Fiat al vendedor
-  /release <_id orden_> - El vendedor libera los satoshis
+  /release <_id orden_> - El vendedor libera los XMR
   /dispute <_id orden_> - Abre una disputa entre los participantes
   /cancel <_id orden_> - Cancela una orden que no ha sido tomada
   /cancelall - Cancela todas las órdenes publicadas y que no han sido tomadas
@@ -268,8 +268,8 @@ help: |
   /mycomm <_@comunidad_> - Entra en el asistente de administración de la comunidad
   /findcomms <_código fiat_> - Busca comunidades que operen con la moneda indicada
   /setcomm <_@grupoDeUnaComunidad / off_> - Establece una comunidad por defecto o la quita con 'off'
-  /settleorder <_id orden_> - Acepta el pago del vendedor y automáticamente envía los sats al comprador, debe haber una comunidad por defecto
-  /cancelorder <_id orden_> - Cancela la orden lo cual retorna los sats al vendedor, debe haber una comunidad por defecto
+  /settleorder <_id orden_> - Acepta el pago del vendedor y automáticamente envía los XMR al comprador, debe haber una comunidad por defecto
+  /cancelorder <_id orden_> - Cancela la orden lo cual retorna los XMR al vendedor, debe haber una comunidad por defecto
   /deldispute <_username_> <_id orden_> - Le elimina una disputa al usuario en la comunidad, debe haber una comunidad por defecto
   /ban <_username_> - Expulsa a un usuario de una comunidad, debe haber una comunidad por defecto
   /unban <_username_> - Desbanea a un usuario de una comunidad, debe haber una comunidad por defecto
@@ -286,7 +286,7 @@ buyer_told_me_that_sent_fiat: |
 
   Luego de liberar, el dinero irá al comprador y no habrá vuelta atrás así que solo realiza este proceso si estás 💯 seguro.
 
-  Presiona el siguiente comando si quieres liberar los Sats para el comprador 👇
+  Presiona el siguiente comando si quieres liberar los XMR para el comprador 👇
 release_order_cmd: /release
 you_have_orders_waiting: 🤖 Tienes una o más ordenes en las que el comprador indicó que te envió el dinero fiat pero no has liberado los fondos, no puedes seguir operando hasta completar esa(s) orden(es)
 user_banned: ¡Usuario baneado!
@@ -295,11 +295,11 @@ user_not_found: ¡Usuario no encontrado en base de datos!
 parse_invoice_error: Error parseando la factura
 invalid_id: Id no válida
 cant_take_own_order: No puedes tomar tu propia orden
-send_me_lninvoice: Por favor envíame una factura lightning por ${amount} sats, aunque para facilitarte las cosas también te acepto facturas sin monto, yo te haré el pago de ${amount} sats.
+send_me_lninvoice: Por favor envíame una factura monero por ${amount} XMR, aunque para facilitarte las cosas también te acepto facturas sin monto, yo te haré el pago de ${amount} XMR.
 you_have_no_orders: No tienes ninguna orden en este momento
 not_rate_for_currency: |
   ${fiatRateProvider} no tiene tasa de cambio para esta moneda fiat
-  Para utilizar esta moneda debes indicar la cantidad de satoshis
+  Para utilizar esta moneda debes indicar la cantidad de XMR
   Si quieres que esta moneda sea incluida en la lista /listcurrencies puedes hacerles una solicitud aquí 👇
 
   🌐 https://yadio.io/api.html
@@ -307,7 +307,7 @@ invoice_with_incorrect_amount: La factura tiene un monto incorrecto
 invoice_updated: 📝 ¡La factura ha sido actualizada correctamente!
 invoice_updated_and_will_be_paid: ¡La factura ha sido actualizada correctamente y será pagada en los próximos segundos!
 invoice_already_being_paid: Ya has enviado una factura para esta orden y estoy intentando pagarla en este momento
-lightning_address_saved: Dirección lightning guardada con éxito
+monero_address_saved: Dirección monero guardada con éxito
 cancel_error: Esta orden no puede ser cancelada en este momento
 cancel_success: '¡Has cancelado la orden Id: ${orderId}!'
 cancelall_success: ¡Has cancelado todas tus órdenes publicadas!
@@ -317,7 +317,7 @@ order_completed: '¡Has completado la orden Id: ${orderId}!'
 order_completed_by_admin: '¡El admin ha completado la orden Id: ${orderId}!'
 have_to_wait_for_counterpart: 🕒 Ya has realizado esta operación, debes esperar por tu contraparte
 ok_cooperativecancel: '👍 Tu contraparte ha estado de acuerdo y ha sido cancelada la orden Id: ${orderId}'
-refund_cooperativecancel: 💰 Has recibido un reembolso por tu pago lightning, no es necesario hacer nada mas
+refund_cooperativecancel: 💰 Has recibido un reembolso por tu pago monero, no es necesario hacer nada mas
 init_cooperativecancel: |
   🕒 Has iniciado la cancelación de la orden Id: ${orderId}, tu contraparte también debe indicarme que desea cancelarla. Si él/ella no responde, puedes abrir una disputa.
 
@@ -330,18 +330,18 @@ counterparty_wants_cooperativecancel: |
   Si estás de acuerdo utiliza el comando 👇
 invoice_payment_failed: ⛔ Intenté enviarte el dinero pero el pago a tu factura ha fallado, intentaré pagarla ${attempts} veces más en intervalos de ${pendingPaymentWindow} minutos, asegúrate que tu nodo/wallet esté online
 cant_take_more_orders: ⛔ ¡Lo siento! No puedes tomar otra orden mientras tengas otras esperando por ti
-seller_released: 💸 El vendedor ya liberó los satoshis, debes esperar por el pago de tu factura
+seller_released: 💸 El vendedor ya liberó los XMR, debes esperar por el pago de tu factura
 your_purchase_is_completed: |
-  🪙 Tu compra de sats ha sido completada exitosamente, @${sellerUsername} ha confirmado tu pago fiat y ya he pagado tu factura, que disfrutes tus sats.
+  🪙 Tu compra de XMR ha sido completada exitosamente, @${sellerUsername} ha confirmado tu pago fiat y ya he pagado tu factura, que disfrutes tus XMR.
 
   ⚡️🍊⚡️
 problem_getting_price: Ha ocurrido un problema obteniendo el precio de esta moneda, por favor intenta más tarde, si el problema persiste contacta a algún administrador
 update_user_setting: He modificado el campo ${field} a ${newState}
-lightning_address_disabled: Lightning address desactivada
+monero_address_disabled: monero address desactivada
 invalid_range_with_amount: |
   Los rangos solo estan habilitados para tasas flotantes.
 
-  Utilice rangos o bien especifique la cantidad de sats, pero no ambas.
+  Utilice rangos o bien especifique la cantidad de XMR, pero no ambas.
 too_many_pending_orders: Has llegado al máximo de órdenes publicadas simultáneamente
 name: Nombre
 group: Grupo
@@ -352,11 +352,11 @@ created: Creada
 yes: Sí
 no: No
 wizard_add_invoice_init: |
-  🤖 Para poder enviarte los satoshis necesito que me envíes una factura con monto ${satsAmount} satoshis equivalente a ${currency} ${fiatAmount}
+  🤖 Para poder enviarte los XMR necesito que me envíes una factura con monto ${XMRAmount} XMR equivalente a ${currency} ${fiatAmount}
 
   Si no la envías en ${expirationTime} minutos la orden será cancelada
 wizard_add_invoice_exit: |
-  Has salido del modo asistente, ahora puedes escribir comandos, aún puedes ingresar una factura a la orden con el comando /setinvoice indicando Id de orden y factura, puedes enviarme una factura con un monto de ${amount} satoshis, pero tambien acepto facturas sin monto:
+  Has salido del modo asistente, ahora puedes escribir comandos, aún puedes ingresar una factura a la orden con el comando /setinvoice indicando Id de orden y factura, puedes enviarme una factura con un monto de ${amount} XMR, pero tambien acepto facturas sin monto:
 
   /setinvoice
 wizard_community_enter_name: Ingresa el nombre de tu comunidad
@@ -405,7 +405,7 @@ expired_order: |
 expired_order_to_buyer: |
   🚨🚨🚨 Esta orden está por expirar y debe ser completada o cancelada inmediátamente, si aún no has enviado el dinero fiat aún puedes cancelar con el comando /cancel.
 
-  Si enviaste el dinero fiat pero el vendedor se niega a liberar los sats puedes abrir una disputa con el comando /dispute. La factura retenida que pagó el vendedor tiene un tiempo de expiración y debes resolver esta orden antes de que expire o te arriesgas a perder tu dinero.
+  Si enviaste el dinero fiat pero el vendedor se niega a liberar los XMR puedes abrir una disputa con el comando /dispute. La factura retenida que pagó el vendedor tiene un tiempo de expiración y debes resolver esta orden antes de que expire o te arriesgas a perder tu dinero.
 
   Si necesitas ayuda puedes escribir al grupo ${helpGroup}
 expired_order_to_seller: |
@@ -414,22 +414,22 @@ expired_order_to_seller: |
   Si recibiste el dinero fiat por favor libera los fondos con el comando /release de lo contrario te arriesgas a que el comprador abra una disputa lo cual afectaría tu reputación.
 
   Si necesitas ayuda puedes escribir al grupo ${helpGroup}
-didnt_add_invoice: '🤨 No has enviado la factura para recibir sats por la orden Id: ${orderId}'
-buyer_havent_add_invoice: '😔 El comprador no me envió la factura para recibir sats por tu venta Id: ${orderId}, tus sats han sido devueltos'
+didnt_add_invoice: '🤨 No has enviado la factura para recibir XMR por la orden Id: ${orderId}'
+buyer_havent_add_invoice: '😔 El comprador no me envió la factura para recibir XMR por tu venta Id: ${orderId}, tus XMR han sido devueltos'
 buyer_havent_add_invoice_to_admin_channel: 'El comprador @${username} (${tgId}) tomó la orden Id: ${orderId} pero no ha ingresado la factura para recibir el pago, el tiempo ha expirado, la orden ha sido publicada nuevamente.'
-havent_paid_invoice: '🤨 No has pagado la factura para vender sats por la orden Id: ${orderId}'
+havent_paid_invoice: '🤨 No has pagado la factura para vender XMR por la orden Id: ${orderId}'
 seller_havent_paid_invoice: '😔 El vendedor no pagó la factura por tu compra Id: ${orderId}, la operación ha sido cancelada'
 seller_havent_add_invoice_to_admin_channel: 'El vendedor @${username} (${tgId}) no ha pagado la factura correspondiente a la orden Id: ${orderId} y el tiempo ha expirado, la orden ha sido publicada nuevamente'
 pending_payment_success_to_admin: |
-  El usuario @${username} tenía un pago pendiente en su compra Id: ${orderId} de ${amount} satoshis, el pago se realizó luego de ${attempts} intentos.
+  El usuario @${username} tenía un pago pendiente en su compra Id: ${orderId} de ${amount} XMR, el pago se realizó luego de ${attempts} intentos.
 
   Prueba de pago: ${paymentSecret}
 pending_payment_success: |
-  ¡He pagado la factura lightning por ${amount} satoshis, Id: ${id}!
+  ¡He pagado la factura monero por ${amount} XMR, Id: ${id}!
 
   Prueba de pago: ${paymentSecret}
 pending_payment_failed: |
-  🤖 He intentado pagar tu factura un total de ${attempts} veces y todas han fallado, algunas veces los usuarios de lightning network no pueden recibir pagos porque no hay suficiente capacidad de entrada en su wallet/nodo, una solución puede ser generar una nueva factura desde otra wallet que sí tenga capacidad.
+  🤖 He intentado pagar tu factura un total de ${attempts} veces y todas han fallado, algunas veces los usuarios de monero network no pueden recibir pagos porque no hay suficiente capacidad de entrada en su wallet/nodo, una solución puede ser generar una nueva factura desde otra wallet que sí tenga capacidad.
 pending_payment_failed_to_admin: |
   El pago a la invoice de la compra Id: ${orderId} del usuario @${username} ha fallado!
 
@@ -439,8 +439,8 @@ buying: Comprando
 receive_payment: Recibo pago
 pay: Pago
 is: está
-trading_volume: 'Volumen de comercio: ${volume} sats'
-satoshis: satoshis
+trading_volume: 'Volumen de comercio: ${volume} XMR'
+XMR: XMR
 by: por
 rate: Tasa
 has_successful_trades: Tiene ${trades} operaciones exitosas
@@ -448,17 +448,17 @@ user_age: "Usa el bot hace ${pluralize(days, 'día', 'días')}"
 price: Precio
 for: Por
 generic_error: Ha ocurrido un error
-sats: sats
+XMR: XMR
 no_capital_letters: 🤖 Estás intentando ejecutar un comando con la primera letra en mayúscula. Por favor, escribe todo el comando en minúscula.
 unknown_command: 😕 No entiendo lo que me dices. Por favor, consulta el comando /help para ver los comandos disponibles.
 invoice_invalid_error: |
-  Error parseando la factura, recuerda que solo debes indicarme la factura lightning, debe comenzar por lnbc,
+  Error parseando la factura, recuerda que solo debes indicarme la factura monero, debe comenzar por lnbc,
 
   Para volver al modo donde puedes ingresar comandos solo ejecuta /exit
 invoice_expiry_too_short_error: El tiempo de expiración de la factura es muy corto
 invoice_has_expired_error: La factura ha expirado
 invoice_has_wrong_destination_error: La factura necesita una dirección destino
-invoice_must_be_larger_error: La factura debe ser mayor o igual a ${minInvoice} satoshis
+invoice_must_be_larger_error: La factura debe ser mayor o igual a ${minInvoice} XMR
 hours: horas
 minutes: minutos
 community_updated: Comunidad modificada correctamente
@@ -482,7 +482,7 @@ new_dispute: ⚠️⚠️⚠️ Un usuario ha iniciado una disputa, para tomarla
 take_dispute: Tomar disputa
 not_authorized: 🤨 No estás autorizado para realizar esta operación
 need_default_community: Para realizar esta operación necesitar tener una comunidad por defecto
-enter_sats_amount: Especifique el monto de satoshis (solo números) o presiona *Precio del mercado*
+enter_XMR_amount: Especifique el monto de XMR (solo números) o presiona *Precio del mercado*
 market_price: Precio del mercado
 enter_currency: 'Especifique una moneda por su código, ej: USD'
 choose_currency: Elija una moneda
@@ -519,7 +519,7 @@ premium_discount: prima/descuento
 current_earnings: |
   Ordenes completadas hasta el momento en la comunidad: ${ordersToRedeem}
 
-  Ganancias de la comunidad: ${earnings} sats
+  Ganancias de la comunidad: ${earnings} XMR
 withdraw_earnings: Retirar ganancias
 invoice_expired_earnings: La factura ha expirado, vuelve a hacer una solicitud de retiro con una factura nueva.
 what_to_do: ¿Qué quieres hacer?
@@ -606,8 +606,8 @@ user_settings: |
     ${community || '🛇'}
   npub:
     <code>${npub || '🛇'}</code>
-  lightning address:
-    <code>${lightning_address || '🛇'}</code>
+  monero address:
+    <code>${monero_address || '🛇'}</code>
 
   <strong># AYUDA</strong>
   /setnpub &lt;npub&gt; - Configura la llave pública de Nostr.

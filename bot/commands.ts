@@ -832,7 +832,7 @@ const release = async (
     if (order.secret === null) {
       throw new Error('order.secret is null');
     }
-    await settleHoldInvoice({ secret: order.secret });
+    await settleHoldInvoice({ secret: order.secret, hash: order.hash });
   } catch (error) {
     logger.error(error);
   }

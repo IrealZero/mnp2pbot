@@ -6,41 +6,17 @@ import { Telegraf } from 'telegraf';
 import {
   payRequest,
   PayResult,
-  SuccessPayment,
   isPendingPayment,
 } from '../src/monero/pay_request'; // ← Wrapper Monero
 import { I18nContext } from '@grammyjs/i18n';
 import { getUserI18nContext } from '../util';
 import { CommunityContext } from '../bot/modules/community/communityContext';
 import { orderUpdated } from '../bot/modules/events/orders';
-import { PayViaPaymentRequestResult } from '../src/@types/payments'; // ← Interfaz que usan los mensajes
-
-/**
- * Convierte un `SuccessPayment` (Monero) a la forma que esperan los
- * mensajes que fueron escritos para Lightning (`PayViaPaymentRequestResult`).
- *
- * Los campos que Lightning exige pero que Monero no tiene se rellenan
- * con valores “neutros” (empty string, 0 o arrays vacíos).
- */
-function moneroSuccessToPayResult(
-  payment: SuccessPayment,
-): PayViaPaymentRequestResult {
-  // En Lightning `fee` está en satoshis y `fee_mtokens` en milisatoshis.
-  const feeMtokens = (payment.fee * 1_000).toString(); // 1 sat = 1 000 msat
-
-  return {
-    id: payment.id,
-    fee: payment.fee,
-    fee_mtokens: feeMtokens,
-    mtokens: feeMtokens,
-    tokens: payment.fee.toString(),
-    safe_fee: payment.fee,
-    safe_tokens: payment.fee,
-    secret: '', // Monero no tiene secret → cadena vacía
-    routes: [], // No hay rutas Lightning
-  };
-}
-
+import { moneroSuccessToLightningResult } from '../src/monero/pay_request';
+import {
+  PayViaPaymentRequestResult as LightningPayResult,
+} from 'lightning/lnd_methods/offchain/pay_via_payment_request';
+import { SuccessPayment } from '../src/@types/payments';   // ← Tipo de éxito que devuelve nuestro wrapper Monero
 /* -----------------------------------------------------------------
    ATTEMPT PENDING PAYMENTS (USERS)
    ----------------------------------------------------------------- */
@@ -61,7 +37,7 @@ export const attemptPendingPayments = async (
       if (!order) throw new Error('Order was not found in DB');
 
       // -----------------------------------------------------------------
-      // 1️⃣  Incrementamos intentos y calculamos back‑off exponencial
+      // I Incrementamos intentos y calculamos back‑off exponencial
       // -----------------------------------------------------------------
       pending.attempts++;
       const baseDelay = 5 * 60 * 1000; // 5 min
@@ -80,14 +56,14 @@ export const attemptPendingPayments = async (
       }
 
       // -----------------------------------------------------------------
-      // 2️⃣  Verificamos si hay pagos en curso (old y new)
+      // II Verificamos si hay pagos en curso (old y new)
       // -----------------------------------------------------------------
       const isPendingOldPayment = await isPendingPayment(order.buyer_invoice);
       const isPendingNewPayment = await isPendingPayment(pending.payment_request);
       if (isPendingOldPayment || isPendingNewPayment) continue; // nada que hacer ahora
 
       // -----------------------------------------------------------------
-      // 3️⃣  Intentamos pagar con Monero
+      // III  Intentamos pagar con Monero
       // -----------------------------------------------------------------
       const paymentResult: PayResult = await payRequest({
         amount: pending.amount,
@@ -99,13 +75,14 @@ export const attemptPendingPayments = async (
       const i18nCtx: I18nContext = await getUserI18nContext(buyerUser);
 
       // -----------------------------------------------------------------
-      // 4️⃣  Caso de ÉXITO (SuccessPayment)
+      // IIII  Caso de ÉXITO (SuccessPayment)
       // -----------------------------------------------------------------
       if ('confirmed_at' in paymentResult) {
         const success = paymentResult as SuccessPayment;
 
-        // Convertimos a la forma que esperan los mensajes
-        const payResultForMessages = moneroSuccessToPayResult(success);
+  // Convertimos al formato que esperan los mensajes de Lightning
+  const payResultForMessages: LightningPayResult =
+    moneroSuccessToLightningResult(success);
 
         // Actualizamos la orden y el registro pending
         order.status = 'SUCCESS';
@@ -143,7 +120,7 @@ export const attemptPendingPayments = async (
         await messages.rateUserMessage(bot, buyerUser, order, i18nCtx);
       } else {
         // -----------------------------------------------------------------
-        // 5️⃣  Caso de FALLA (ErrorPayment)
+        // IIIII Caso de FALLA (ErrorPayment)
         // -----------------------------------------------------------------
         const errObj = paymentResult as { error: string; message: any };
         pending.last_error = errObj.error;
@@ -212,7 +189,7 @@ export const attemptCommunitiesPendingPayments = async (
   for (const pending of pendingPayments) {
     try {
       // -----------------------------------------------------------------
-      // 1️⃣  Incrementamos intentos y calculamos back‑off exponencial
+      //  Incrementamos intentos y calculamos back‑off exponencial
       // -----------------------------------------------------------------
       pending.attempts++;
       const baseDelay = 5 * 60 * 1000; // 5 min
@@ -223,13 +200,13 @@ export const attemptCommunitiesPendingPayments = async (
       );
 
       // -----------------------------------------------------------------
-      // 2️⃣  Verificamos si ya hay un pago en curso
+      // II  Verificamos si ya hay un pago en curso
       // -----------------------------------------------------------------
       const isPending = await isPendingPayment(pending.payment_request);
       if (isPending) continue; // nada que hacer ahora
 
       // -----------------------------------------------------------------
-      // 3️⃣  Intentamos pagar con Monero
+      // III  Intentamos pagar con Monero
       // -----------------------------------------------------------------
       const paymentResult: PayResult = await payRequest({
         amount: pending.amount,
@@ -241,14 +218,14 @@ export const attemptCommunitiesPendingPayments = async (
       const i18nCtx: I18nContext = await getUserI18nContext(user);
 
       // -----------------------------------------------------------------
-      // 4️⃣  Caso de ÉXITO (SuccessPayment)
+      // IIII  Caso de ÉXITO (SuccessPayment)
       // -----------------------------------------------------------------
       if ('confirmed_at' in paymentResult) {
         const success = paymentResult as SuccessPayment;
 
         // Convertimos a la forma que esperan los mensajes (aunque aquí solo
         // enviamos un mensaje directo al usuario, lo usamos por consistencia)
-        const payResultForMessages = moneroSuccessToPayResult(success);
+        const payResultForMessages = moneroSuccessToLightningResult(success);
 
         pending.paid = true;
         pending.paid_at = new Date();
@@ -278,7 +255,7 @@ export const attemptCommunitiesPendingPayments = async (
         );
       } else {
         // -----------------------------------------------------------------
-        // 5️⃣  Caso de FALLA (ErrorPayment)
+        // IIIII  Caso de FALLA (ErrorPayment)
         // -----------------------------------------------------------------
         const errObj = paymentResult as { error: string; message: any };
         pending.last_error = errObj.error;

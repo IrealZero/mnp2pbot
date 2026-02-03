@@ -12,15 +12,53 @@ import {
   sendPayment,
   waitForPayment,
 } from "./client";
+// src/monero/pay_request.ts
+import {
+  SuccessPayment,
+  // Importamos el tipo de la librería Lightning (para tipado)
+  PayViaPaymentRequestResult as LightningPayResult,
+} from 'lightning/lnd_methods/offchain/pay_via_payment_request';
 
+/**
+ * Convierte un `SuccessPayment` (Monero) al formato que esperan los
+ * mensajes escritos para Lightning (`LightningPayResult`).
+ *
+ * Los campos que Monero no posee se rellenan con valores “neutros”
+ * (cadenas vacías, 0, arrays vacíos, etc.).
+ */
+export function moneroSuccessToLightningResult(
+  payment: SuccessPayment,
+): LightningPayResult {
+  // En Lightning, `fee_mtokens` = fee * 1 000 (1 sat = 1 000 msat)
+  const feeMtokens = (payment.fee * 1_000).toString();
+
+  return {
+    // ---------- Campos obligatorios ----------
+    id: payment.id,
+    fee: payment.fee,
+    fee_mtokens: feeMtokens,
+    mtokens: feeMtokens,               // en nuestro caso el monto total = fee
+    tokens: payment.fee,
+    safe_fee: payment.fee,
+    safe_tokens: payment.fee,
+
+    // ---------- Campos que Monero no tiene ----------
+    secret: '',                         // Monero no tiene secret
+    confirmed_at: payment.confirmed_at,
+    hops: [],                           // Vacío, porque Monero no tiene hops
+    index: '',                          // No aplicable
+    paths: [],                          // Vacío
+    timeout: 0,                        // No aplicable (puedes dejar '' o '0')
+  };
+}
 /* -----------------------------------------------------------------
    TIPOS DE RESULTADO DE PAYREQUEST
    ----------------------------------------------------------------- */
-export interface SuccessPayment {
-  id: string;            // hash de la transacción Monero
-  fee: number;           // tarifa estimada (no exacta)
-  confirmed_at: string;  // timestamp ISO
-}
+//export interface SuccessPayment {
+//  id: string;            // hash de la transacción Monero
+//  fee: number;           // tarifa estimada (no exacta)
+//  confirmed_at: string;  // timestamp ISO
+//}
 
 export interface ErrorPayment {
   error: string;         // TIMEOUT, INSUFFICIENT_BALANCE, UNKNOWN, …
@@ -53,7 +91,7 @@ const payRequest = async ({
 
   try {
     // -----------------------------------------------------------------
-    // 1️⃣ Convertir satoshis → pico‑XMR (el mismo factor usado al crear la factura)
+    // I Convertir satoshis → pico‑XMR (el mismo factor usado al crear la factura)
     // -----------------------------------------------------------------
     const amountPicoXmr = (() => {
       const priceSatPerXmr = Number(process.env.PRICE_SAT_PER_XMR ?? "1000");
@@ -62,7 +100,7 @@ const payRequest = async ({
     })();
 
     // -----------------------------------------------------------------
-    // 2️⃣ Calcular máximo fee (simulamos la lógica de Lightning)
+    // II Calcular máximo fee (simulamos la lógica de Lightning)
     // -----------------------------------------------------------------
     const maxRoutingFee = process.env.MAX_ROUTING_FEE;
     if (maxRoutingFee === undefined) {
@@ -74,7 +112,7 @@ const payRequest = async ({
     }
 
     // -----------------------------------------------------------------
-    // 3️⃣ Enviar el pago
+    // III Enviar el pago
     // -----------------------------------------------------------------
     logger.info(
       `Starting Monero payment of ${amount} sat (~${amountPicoXmr} pico‑XMR) to ${request}`,
@@ -86,7 +124,7 @@ const payRequest = async ({
     });
 
     // -----------------------------------------------------------------
-    // 4️⃣ Construir el objeto de respuesta (similar al de Lightning)
+    // IV Construir el objeto de respuesta (similar al de Lightning)
     // -----------------------------------------------------------------
     const paymentResult: SuccessPayment = {
       id: txHash,
@@ -127,7 +165,7 @@ const payRequest = async ({
 const payToBuyer = async (bot: HasTelegram, order: IOrder) => {
   try {
     // -----------------------------------------------------------------
-    // 1️⃣ Verificar si ya se pagó (Monero → waitForPayment)
+    // I Verificar si ya se pagó (Monero → waitForPayment)
     // -----------------------------------------------------------------
     const alreadyPaid = await waitForPayment(order.buyer_invoice, 0);
     if (alreadyPaid) {
@@ -136,7 +174,7 @@ const payToBuyer = async (bot: HasTelegram, order: IOrder) => {
     }
 
     // -----------------------------------------------------------------
-    // 2️⃣ Intentar pagar al comprador (el vendedor paga al comprador)
+    // II Intentar pagar al comprador (el vendedor paga al comprador)
     // -----------------------------------------------------------------
     const payment = await payRequest({
       request: order.buyer_invoice, // dirección integrada del comprador
@@ -149,7 +187,7 @@ const payToBuyer = async (bot: HasTelegram, order: IOrder) => {
     const i18nCtx = await getUserI18nContext(buyerUser);
 
     // -----------------------------------------------------------------
-    // 3️⃣ Caso de invoice expirada (no aplica en Monero, pero lo mantenemos)
+    // III Caso de invoice expirada (no aplica en Monero, pero lo mantenemos)
     // -----------------------------------------------------------------
     if ((payment as any).is_expired) {
       await messages.expiredInvoiceOnPendingMessage(
@@ -165,7 +203,7 @@ const payToBuyer = async (bot: HasTelegram, order: IOrder) => {
     if (!sellerUser) throw new Error("sellerUser was not found");
 
     // -----------------------------------------------------------------
-    // 4️⃣ Pago exitoso
+    // IV Pago exitoso
     // -----------------------------------------------------------------
     if ("confirmed_at" in payment) {
       // Aquí TypeScript sabe que `payment` es SuccessPayment
@@ -185,7 +223,7 @@ const payToBuyer = async (bot: HasTelegram, order: IOrder) => {
     }
 
     // -----------------------------------------------------------------
-    // 5️⃣ Persistir cambios y notificar
+    // V Persistir cambios y notificar
     // -----------------------------------------------------------------
     await order.save();
     OrderEvents.orderUpdated(order);

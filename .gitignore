@@ -1,4 +1,6 @@
-node_modules
+node_modules/**
+# Necessary exception
+!node_modules/lightning/lnd_methods/offchain/pay_via_payment_request.d.ts
 .env
 admin.macaroon
 tls.cert

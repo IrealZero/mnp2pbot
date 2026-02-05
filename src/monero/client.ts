@@ -121,6 +121,21 @@ export async function sendPayment({
   return txHash;
 }
 
+export async function createSubaddress(
+  wallet: MoneroWalletFull,
+  label?: string
+): Promise<{ address: string; accountIndex: number; subaddressIndex: number }> {
+  const accounts = await wallet.getAccounts();
+  const accountIdx = 0; // normalmente usamos la cuenta principal
+  const nextIdx = (await accounts[0].getSubaddresses()).length;
+  const subaddr = await wallet.createSubaddress(accountIdx, nextIdx, label);
+  return {
+    address: subaddr.getAddress(),
+    accountIndex: accountIdx,
+    subaddressIndex: nextIdx,
+  };
+}
+
 /** Opcional: cancelar una factura (solo marca en BD) */
 export async function cancelInvoice(paymentId: string): Promise<void> {
   // No hay forma de “revertir” en cadena. La función solo sirve

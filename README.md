@@ -9,7 +9,7 @@ Telegram bot that allows people to trade using the **Monero network** with other
 ## Try it out!
 
 * **Website:** *unavailable*  
-* **Bot:** `@mnp2pBot` (replace with your actual bot username)  
+* **Bot:** `@mnp2pBot` 
 * **Main channel offers:** *unavailable*
 
 Wherever you are you can start using the bot, just need to have a Telegram account with a username and `/start` the bot.

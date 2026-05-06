@@ -1,12 +1,26 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "sourceMap": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true
+  },
   "include": [
-    "tests/**/*",
-    "src/**/*",
+    "tests/**/*.ts",
+    "src/**/*.ts",
     "src/@types/**/*",
+    "app.ts",
+    "bot/**/*.ts",
+    "ln/**/*.ts",
+    "util/**/*.ts",
     "node_modules/lightning/lnd_methods/offchain/pay_via_payment_request.d.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }

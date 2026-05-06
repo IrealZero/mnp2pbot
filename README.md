@@ -1,91 +1,304 @@
-![LNp2pBot](logo-600.png)
-
-[![chat](https://img.shields.io/badge/chat-telegram-%2326A5E4)](https://t.me/lnp2pbot) [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen)](./LICENSE)
+![MNp2pBot](logo-600.png)
 
 # MNp2pBot
 
-Telegram bot that allows people to trade using the **Monero network** with other people on Telegram. This is an open‑source project and anyone can create issues, submit a PR, fork it, modify it or create their own bot with the code.
+Experimental Monero adaptation of [LNp2PBot](https://github.com/lnp2pBot/bot).
 
-## Try it out!
+MNp2pBot is a Telegram bot for coordinating peer-to-peer Monero trades. This branch is an early **minimal adaptation** from Lightning Network settlement to Monero settlement.
 
-* **Website:** *unavailable*  
-* **Bot:** `@mnp2pBot` 
-* **Main channel offers:** *unavailable*
-
-Wherever you are you can start using the bot, just need to have a Telegram account with a username and `/start` the bot.
+The current goal is not to provide a finished production bot. The current goal is to validate the Monero payment flow, order states, payment detection, release/refund logic, and tests in a controlled environment.
 
 ---
 
-### What is mnp2pBot?
+## Current status
 
-mnp2pBot is written in Node.js and connects with a **Monero daemon** (via `monero‑javascript`).  
-We wanted the Telegram bot to be able to receive Monero payments without being custodial. After some thinking we decided to use **integrated addresses + payment‑IDs** (instead of hold‑invoices) to keep the flow simple and trustless:
+This branch is experimental.
 
-1. **Alice** creates a sell (or buy) order specifying the amount of XMR (in piconeros) and the fiat amount.  
-2. The bot publishes the order in the public channel.  
-3. **Bob** accepts the order and the bot generates a **unique integrated Monero address** (address + payment‑ID) for the transaction.  
-4. The payer sends XMR to that address. The bot continuously polls the wallet until the payment is detected (the blockchain guarantees no replay attacks).  
-5. Once the payment is confirmed, the bot shares the counterpart’s contact info so the fiat can be exchanged off‑chain.  
-6. After the fiat transfer is acknowledged, the bot releases the XMR to the receiver (or refunds if something goes wrong).
+Current direction:
 
-If either party does not confirm within the configured timeout, the bot notifies the admins and a dispute can be opened.
+- Monero support through `monero-javascript`
+- Wallet RPC integration
+- Stagenet-first testing
+- Temporary custodial / semi-custodial flow
+- Minimal compatibility with the original LNp2PBot structure
+- Gradual replacement of Lightning-specific concepts
 
----
+Not yet complete:
 
-## Creating a **sell** order
+- Production-ready Monero escrow
+- Non-custodial multisig flow
+- Complete removal of Lightning naming/types
+- Final economic/security model
+- Mainnet deployment guarantees
 
-1. Alice tells the bot that she wants to sell **X piconeros** (≈ X XMR) for **N** fiat amount.  
-2. The bot publishes a sell order in the bot channel.  
-3. Bob accepts the order and the bot generates a **Monero integrated address** (address + payment‑ID).  
-4. Bob sends the required XMR to that address. The bot detects the payment (no custodial hold‑invoice needed).  
-5. After the bot sees the payment, Alice and Bob are put in contact.  
-6. Bob sends the fiat to Alice and notifies the bot.  
-7. When Alice confirms receipt, the bot **releases** the XMR to Bob (or refunds if the timeout expires).
+The original LNp2PBot was built around Lightning hold invoices. Monero does not have a direct equivalent to Lightning hold invoices, so this project needs a different settlement model.
 
 ---
 
-## Creating a **buy** order
+## Design decision
 
-1. Alice wants to buy **X piconeros** of XMR.  
-2. Alice publishes a buy order with the desired fiat amount.  
-3. The bot shows the order in the public group.  
-4. Bob takes the order; the bot generates a **Monero integrated address** for Alice to receive the XMR.  
-5. Alice sends the fiat to Bob and notifies the bot.  
-6. When Bob confirms receipt, the bot releases the XMR to Alice’s address.
+For now, this branch uses a **temporary custodial / semi-custodial model on Monero stagenet**.
 
-If the timeout expires without confirmation, admins are alerted and a dispute can be opened.
+That means:
+
+1. The bot can generate a Monero receiving address for an order.
+2. A user sends XMR to that address.
+3. The bot watches the wallet for the payment.
+4. After enough confirmations, the order can move to a funded/locked state.
+5. The bot can later release or refund the funds according to the order/dispute flow.
+
+This is not the final philosophical target. It is a practical experimental phase.
+
+Future work may explore:
+
+- Monero multisig
+- Reduced-custody designs
+- Reputation-only coordination
+- Better dispute flows
+- Cleaner separation between bot coordination and fund custody
 
 ---
 
-## Cooperative cancel
+## Why this exists
 
-Before another user takes an order, the creator can cancel it.  
-If both parties agree to cancel after an order is taken, the funds are returned to the seller.
+LNp2PBot uses Lightning invoices and hold invoices as a core primitive. Monero has different primitives:
+
+- addresses
+- subaddresses
+- integrated addresses / payment IDs
+- wallet RPC
+- transaction confirmations
+- wallet-controlled transfers
+
+This branch tries to adapt the bot gradually instead of rewriting everything from zero.
+
+The first goal is to answer:
+
+> Can the existing LNp2PBot order flow be minimally adapted to Monero payment detection and release/refund semantics?
+
+---
+
+## Current Monero approach
+
+The current code uses `monero-javascript`.
+
+Early Monero primitives include:
+
+- wallet RPC client
+- integrated address / payment ID helpers
+- payment detection by polling wallet transfers
+- basic payment send wrapper
+- tests for the Monero wrapper
+
+The project may later prefer **subaddress-per-order** as the main receive model.
+
+A possible future order payment model:
+
+```text
+order
+→ unique subaddress
+→ expected atomic XMR amount
+→ payment detected
+→ confirmations checked
+→ escrow state updated
+→ release/refund/dispute
+```
+
+
+---
+
+## Suggested settlement model
+
+The project should move toward explicit Monero-native domain objects instead of reusing Lightning naming forever.
+
+Suggested concepts:
+
+```text
+PaymentIntent
+EscrowDeposit
+Release
+Refund
+Dispute
+```
+
+Suggested states:
+
+```text
+awaiting_deposit
+deposit_seen
+deposit_confirmed
+awaiting_fiat
+release_requested
+released
+refund_requested
+refunded
+disputed
+expired
+```
+
+---
+
+## Sell order flow
+
+Experimental stagenet flow:
+
+1. Alice creates a sell order.
+    
+2. Bob takes the order.
+    
+3. The bot generates a Monero payment destination for the order.
+    
+4. Bob sends XMR to that destination.
+    
+5. The bot detects the incoming transaction.
+    
+6. After enough confirmations, the order is marked as funded.
+    
+7. Bob sends fiat to Alice outside the bot.
+    
+8. Alice confirms fiat receipt.
+    
+9. The bot releases XMR to Bob, or opens/refers to dispute handling if something goes wrong.
+    
+
+---
+
+## Buy order flow
+
+Experimental stagenet flow:
+
+1. Alice creates a buy order.
+    
+2. Bob takes the order.
+    
+3. The bot prepares a Monero settlement flow for the order.
+    
+4. Alice sends fiat to Bob outside the bot.
+    
+5. Bob confirms fiat receipt.
+    
+6. The bot releases/sends XMR according to the order state.
+    
+
+The exact buy/sell flow still needs cleanup because the original bot was designed around Lightning invoices.
 
 ---
 
 ## Disputes
 
-Either party can open a dispute at any moment. A **solver** (human moderator) is notified with all the information, contacts both parties and decides the outcome.
+Disputes are still inherited from the original LNp2PBot model.
 
-During a dispute each user’s `dispute` counter in the database is incremented. If a user is proven malicious, the solver can ban them, preventing further use of the bot.
+The intended experimental model:
+
+- either party can open a dispute
+    
+- a human solver/admin reviews the order
+    
+- the bot stores the relevant order/payment state
+    
+- the solver decides whether to release, refund, ban, or mark the order failed
+    
+
+This area is not final.
 
 ---
 
-## Incentive to release funds
+## Environment
 
-A seller that doesn’t release the XMR after receiving fiat cannot open or take new orders, which harms their reputation and may lead to a dispute.
+Example Monero-related environment variables:
+
+```env
+MONERO_WALLET_RPC_URL=http://127.0.0.1:38082/json_rpc
+MONERO_WALLET_USER=rpc_user
+MONERO_WALLET_PASS=rpc_pass
+MONERO_NETWORK=stagenet
+```
+
+The current `.env-sample` still contains many inherited Lightning variables. They are kept for compatibility during the minimal adaptation phase and should be cleaned up gradually.
 
 ---
 
-## Communities
+## Running tests
 
-Any Telegram group can add the bot (`@mnp2pBot`) to facilitate XMR trading among its members. The group admin earns a commission on transactions performed within the community and can set custom fee discounts.
+```bash
+npm install
+npm test
+```
+
+Some tests are still inherited from LNp2PBot. Monero-specific tests should be expanded around:
+
+- payment intent creation
+    
+- address/subaddress generation
+    
+- payment detection
+    
+- confirmation handling
+    
+- release/refund wrappers
+    
+- dispute transitions
+    
+- timeout behavior
+    
 
 ---
 
-# Financial Support
+## Development priorities
 
-**mnp2pBot** is an open‑source project. We are not a company, we don’t do ICOs or hidden business models—we just want to bring open‑source money to people.
+Near-term priorities:
 
-If you’d like to support further development, please consider sending Monero to the following address:
+1. Make the stagenet custodial/semi-custodial flow explicit.
+    
+2. Separate `checkPayment()` from `waitForPayment()`.
+    
+3. Store Monero payment metadata in the order model:
+    
+    - address
+        
+    - subaddress index or payment ID
+        
+    - expected atomic amount
+        
+    - tx hash
+        
+    - confirmations
+        
+    - escrow state
+        
+4. Prefer Monero-native names over Lightning names.
+    
+5. Keep compatibility wrappers only where needed.
+    
+6. Add full-flow tests:
+    
+    - create order
+        
+    - detect deposit
+        
+    - confirm deposit
+        
+    - release
+        
+    - refund
+        
+    - dispute
+        
+7. Clean README, `.env-sample`, package metadata and comments.
+    
+
+---
+
+## Important warning
+
+This branch is experimental and should not be used with mainnet funds.
+
+Use Monero stagenet while developing.
+
+Do not run this as a public bot until the custody model, wallet security, dispute flow, error handling and operational assumptions are clearly reviewed.
+
+---
+
+## License
+
+MIT, inherited from the original LNp2PBot project.

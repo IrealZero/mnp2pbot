@@ -1,8 +1,8 @@
 {
-  "name": "lnp2pbot",
-  "version": "0.14.3",
-  "author": "Francisco Calderón <negrunch@grunch.dev>",
-  "description": "P2P lightning network telegram bot",
+  "name": "mnp2pbot",
+  "version": "0.1.0",
+  "author": "IrealZero <IrealZero@pm.me>",
+  "description": "Experimental peer-to-peer Monero Telegram bot adapted from LNp2PBot",
   "main": "dist/app.js",
   "scripts": {
     "prestart": "npx tsc",
@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .ts",
     "format": "prettier --write '**/*.{js,ts}'",
     "pretest": "tsc -p tsconfig.test.json",
-    "test": "export NODE_ENV=test && mocha --exit 'dist/tests/**/*.spec.js'"
+    "test": "export NODE_ENV=test && mocha -r esm --exit 'dist/tests/**/*.spec.js' --exclude 'dist/tests/legacy/**'"
   },
   "license": "MIT",
   "dependencies": {
@@ -37,6 +37,7 @@
   },
   "keywords": [
     "lightning",
+    "monero",
     "telegram",
     "bot",
     "p2p",
@@ -58,6 +59,7 @@
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-n": "^15.2.0",
     "eslint-plugin-promise": "^6.0.0",
+    "esm": "^3.2.25",
     "mocha": "^11.1.0",
     "nodemon": "2.0.19",
     "prettier": "^3.6.2",
